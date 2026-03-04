@@ -4,8 +4,10 @@ import { applyHighlights } from "../utils/applyHighlights";
 
 // LNet: [Channel]-Game:Player: "message"
 const LNET_RE = /^(\[[^\]]+\]-[^:]+:[^:]+:)\s*(.*)/;
-// ESP: [Channel][Player] "message"
+// ESP gwethdesuan: [Channel][Player] "message"
 const ESP_RE = /^(\[[^\]]+\]\[[^\]]+\])\s*(.*)/;
+// ESP Thoughtcast: [Channel] Your mind hears Player thinking, "message"
+const ESP_MIND_RE = /^(\[[^\]]+\])\s+Your mind hears (\S+) thinking,\s*(.*)/;
 
 function formatTime(ts) {
   if (!ts) return null;
@@ -44,6 +46,15 @@ function ThoughtLine({ text, ts, highlights }) {
       <>
         <span className="thought-esp-prefix"><HighlightedText text={match[1]} highlights={highlights} /></span>{" "}
         <HighlightedText text={match[2]} highlights={highlights} />{timestamp}
+      </>
+    );
+  }
+  if ((match = text.match(ESP_MIND_RE))) {
+    const prefix = `${match[1]}[${match[2]}]`;
+    return (
+      <>
+        <span className="thought-esp-prefix"><HighlightedText text={prefix} highlights={highlights} /></span>{" "}
+        <HighlightedText text={match[3]} highlights={highlights} />{timestamp}
       </>
     );
   }
