@@ -169,7 +169,7 @@ function reducer(state, action) {
       const newStreams = { ...state.streams, [streamId]: newStreamLines };
 
       // Also add combat/thoughts/deaths/arrivals to main game text
-      const showInMain = ["combat", "death", "atmospherics", "logons", "assess"].includes(streamId);
+      const showInMain = ["combat", "death", "atmospherics", "logons", "assess", "familiar"].includes(streamId);
       let newGameLines = state.gameLines;
       if (showInMain) {
         if (streamId === "combat") {
@@ -190,6 +190,7 @@ function reducer(state, action) {
           const gameLine = {
             segments: [{ text: fixedText, style: "stream" }],
             streamId: streamId,
+            ended: true,
           };
           newGameLines = appendLines(newGameLines, gameLine, MAX_LINES);
         }

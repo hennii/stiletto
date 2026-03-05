@@ -378,6 +378,9 @@ html, body, #root {
 .style-stream {
   color: var(--text-dim);
 }
+.stream-familiar .style-stream {
+  color: var(--text-primary);
+}
 .bold {
   color: var(--color-bold);
 }
