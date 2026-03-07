@@ -1326,8 +1326,59 @@ html, body, #root {
 .moon-images {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 8px;
-  border-radius: 4px;
+  position: relative;
+  margin: -6px -10px 8px -10px;
+  border-radius: 0;
+  background-color: #080814;
+}
+
+.moon-image-slot {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  height: 64px;
+  overflow: hidden;
+}
+
+.moon-image {
+  height: 48px;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Moon below horizon — invisible but space preserved */
+.moon-image--down,
+.moon-image--unknown {
+  visibility: hidden;
+}
+
+/* Compensate for unequal transparent padding in source images (48px top, 6px bottom of 260px)
+   so the visible disk is centered in the slot rather than sitting low. */
+.moon-image--up {
+  transform: translateY(-7.9%);
+}
+
+/* Moon on the horizon — translateY set dynamically via inline style */
+.moon-image--rising,
+.moon-image--setting {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+}
+
+/* Sky period layers — absolutely positioned inside .moon-images, crossfaded by React */
+
+.moon-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.moon-sky--night {
   background-color: #080814;
   background-image:
     radial-gradient(1px 1px at  8% 20%, rgba(255,255,255,0.90) 0%, transparent 100%),
@@ -1356,35 +1407,54 @@ html, body, #root {
     radial-gradient(1px 1px at 20% 95%, rgba(255,255,255,0.45) 0%, transparent 100%);
 }
 
-.moon-image-slot {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  position: relative;
-  height: 48px;
-  overflow: hidden;
+.moon-sky--dawn {
+  background-color: #120818;
+  background-image:
+    linear-gradient(to top, rgba(200, 90, 20, 0.55) 0%, rgba(140, 60, 80, 0.25) 30%, transparent 60%),
+    radial-gradient(1px 1px at  8% 20%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 17% 72%, rgba(255,255,255,0.30) 0%, transparent 100%),
+    radial-gradient(1px 1px at 23% 40%, rgba(255,255,255,0.40) 0%, transparent 100%),
+    radial-gradient(1px 1px at 34% 55%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1px 1px at 41% 30%, rgba(255,255,255,0.45) 0%, transparent 100%),
+    radial-gradient(1px 1px at 52% 15%, rgba(255,255,255,0.38) 0%, transparent 100%),
+    radial-gradient(1px 1px at 67% 68%, rgba(255,255,255,0.42) 0%, transparent 100%),
+    radial-gradient(1px 1px at 76% 38%, rgba(255,255,255,0.35) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 55%, rgba(255,255,255,0.40) 0%, transparent 100%);
 }
 
-.moon-image {
-  width: 48px;
-  height: 48px;
-  display: block;
-  flex-shrink: 0;
+.moon-sky--day {
+  background-color: #3a78c9;
+  background-image: linear-gradient(to bottom, #1e5fa8 0%, #5a9de0 60%, #82b8ed 100%);
 }
 
-/* Moon below horizon — invisible but space preserved */
-.moon-image--down,
-.moon-image--unknown {
-  visibility: hidden;
+.moon-sky--dusk {
+  background-color: #130a18;
+  background-image:
+    linear-gradient(to top, rgba(210, 70, 15, 0.60) 0%, rgba(160, 50, 60, 0.30) 35%, transparent 60%),
+    radial-gradient(1px 1px at 12% 25%, rgba(255,255,255,0.30) 0%, transparent 100%),
+    radial-gradient(1px 1px at 29%  8%, rgba(255,255,255,0.25) 0%, transparent 100%),
+    radial-gradient(1px 1px at 47% 82%, rgba(255,255,255,0.28) 0%, transparent 100%),
+    radial-gradient(1px 1px at 58% 48%, rgba(255,255,255,0.32) 0%, transparent 100%),
+    radial-gradient(2px 2px at 63% 22%, rgba(255,255,255,0.20) 0%, transparent 100%),
+    radial-gradient(1px 1px at 72%  5%, rgba(255,255,255,0.30) 0%, transparent 100%),
+    radial-gradient(1px 1px at 86% 18%, rgba(255,255,255,0.22) 0%, transparent 100%),
+    radial-gradient(1px 1px at 94% 33%, rgba(255,255,255,0.32) 0%, transparent 100%);
 }
 
-/* Moon on the horizon — peek up from the bottom of the row */
-.moon-image--rising,
-.moon-image--setting {
+/* Clouds rendered above moon images during day */
+.moon-clouds {
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%) translateY(75%);
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background-image:
+    radial-gradient(ellipse 100px 28px at 28% 25%, rgba(255,255,255,0.45) 0%, transparent 70%),
+    radial-gradient(ellipse 70px 22px at 22% 18%, rgba(255,255,255,0.35) 0%, transparent 70%),
+    radial-gradient(ellipse 55px 18px at 36% 30%, rgba(255,255,255,0.28) 0%, transparent 70%),
+    radial-gradient(ellipse 66px 32px at 80% 22%, rgba(255,255,255,0.72) 0%, transparent 70%),
+    radial-gradient(ellipse 48px 24px at 73% 18%, rgba(255,255,255,0.58) 0%, transparent 70%),
+    radial-gradient(ellipse 42px 28px at 87% 16%, rgba(255,255,255,0.62) 0%, transparent 70%),
+    radial-gradient(ellipse 34px 20px at 92% 24%, rgba(255,255,255,0.45) 0%, transparent 70%);
 }
 
 /* ===== Highlights Modal ===== */

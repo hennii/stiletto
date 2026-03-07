@@ -42,6 +42,7 @@ const initialState = {
   mapLevel: 0,
   inventory: { worn: [], lastFullRefresh: null },
   moons: null,
+  skyPeriod: localStorage.getItem("dr-sky-period") || "night",
 };
 
 function appendLines(existing, newLine, max) {
@@ -334,8 +335,11 @@ function reducer(state, action) {
         mapCurrentNode: action.current_node,
         mapLevel: action.level,
       };
-    case "moon_state":
-      return { ...state, moons: action.moons };
+    case "moon_state": {
+      const skyPeriod = action.sky_period ?? state.skyPeriod;
+      if (action.sky_period) localStorage.setItem("dr-sky-period", skyPeriod);
+      return { ...state, moons: action.moons, skyPeriod };
+    }
     case "inventory_worn": {
       // Rebuild worn list from names, preserving known container contents for matching items.
       const existingMap = new Map(state.inventory.worn.map((i) => [i.name, i]));
@@ -520,6 +524,7 @@ export function useGameSocket() {
     mapLevel: state.mapLevel,
     inventory: state.inventory,
     moons: state.moons,
+    skyPeriod: state.skyPeriod,
     send,
     sendMessage,
   };

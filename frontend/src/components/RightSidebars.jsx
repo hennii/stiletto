@@ -63,7 +63,7 @@ function renderPanelContent(id, props) {
   switch (id) {
     case "room":      return <RoomPanel room={props.room} onInsertText={props.onInsertText} send={props.send} addToHistoryRef={props.addToHistoryRef} />;
     case "map":       return <MapPanel zone={props.mapZone} currentNode={props.mapCurrentNode} level={props.mapLevel} />;
-    case "moons":     return <MoonPanel moons={props.moons} />;
+    case "moons":     return <MoonPanel moons={props.moons} skyPeriod={props.skyPeriod} />;
     case "exp":       return <ExpTracker exp={props.exp} send={props.send} />;
     case "thoughts":  return <StreamPanel title="Thoughts" lines={props.streams.thoughts || []} colorizeThoughts />;
     case "arrivals":  return <StreamPanel title="Arrivals" lines={props.streams.logons || []} />;
@@ -175,7 +175,7 @@ function SidebarColumn({ columnId, panelIds, collapsedPanels, panelSizes, onTogg
 const RightSidebars = memo(function RightSidebars({
   room, exp, streams, activeSpells, compass, scriptWindows,
   onMove, mapZone, mapCurrentNode, mapLevel, hiddenPanels = new Set(),
-  inventory, roundtime, send, addToHistoryRef, onInsertText, moons,
+  inventory, roundtime, send, addToHistoryRef, onInsertText, moons, skyPeriod,
 }) {
   // s1 = outer (original) sidebar. Reads legacy panelOrder key for back-compat.
   const [s1Panels, setS1Panels] = useState(() => {
@@ -331,7 +331,7 @@ const RightSidebars = memo(function RightSidebars({
   }, []);
 
   // ── Render ───────────────────────────────────────────────────────────────
-  const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, inventory, roundtime, send, addToHistoryRef, onInsertText, moons };
+  const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, inventory, roundtime, send, addToHistoryRef, onInsertText, moons, skyPeriod };
 
   return (
     <div ref={containerRef} className="right-sidebars">

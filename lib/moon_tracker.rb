@@ -31,14 +31,28 @@ class MoonTracker
     "xibar"   => 172 * 60,
   }.freeze
 
+  # Sun cycle durations (~4 real hours each based on DR's ~3x time ratio)
+  SUN_UP_DURATION   = 240 * 60
+  SUN_DOWN_DURATION = 240 * 60
+
+  # Minutes before/after a sun transition to show dawn or dusk
+  DAWN_DUSK_THRESHOLD = 20
+
+  # How long a time-of-day text override is trusted before falling back to computed value
+  SKY_OVERRIDE_TTL = 60 * 60  # 1 hour
+
   def initialize(data_dir:, on_update:)
     @data_dir = data_dir
     @on_update = on_update
     @mutex = Mutex.new
+    @sun_state = { is_day: nil, next_event_at: nil, last_rise_t: nil, last_set_t: nil }
     @state = load_state
     @last_fetch = Time.now
     @next_fetch_delay = nil
     @last_broadcast_minutes = nil
+    @last_broadcast_period = nil
+    @sky_period_override = nil
+    @sky_period_override_at = nil
   end
 
   # Spawn background thread for periodic Firebase re-fetches.
@@ -66,14 +80,40 @@ class MoonTracker
       @next_fetch_delay = nil
     end
     save_state
-    push_firebase_update(moon, is_up, now)
     @on_update.call(ws_event)
     puts "[moon] #{moon} #{is_up ? "rose" : "set"}"
   end
 
+  # Called by server.rb when the `time` command output reveals the current time of day.
+  # Overrides the Firebase-computed sky_period for up to SKY_OVERRIDE_TTL seconds.
+  def set_sky_period(period)
+    @mutex.synchronize do
+      @sky_period_override    = period
+      @sky_period_override_at = Time.now
+    end
+    @on_update.call(ws_event)
+    puts "[moon] Sky period set from game text: #{period}"
+  end
+
+  # Called by server.rb when a sun rise/set event is seen in game text.
+  def sun_event(is_up)
+    now = Time.now
+    @mutex.synchronize do
+      @sun_state = {
+        is_day:        is_up,
+        next_event_at: now + (is_up ? SUN_UP_DURATION : SUN_DOWN_DURATION),
+        last_rise_t:   is_up ? now.to_i : @sun_state[:last_rise_t],
+        last_set_t:    is_up ? @sun_state[:last_set_t] : now.to_i,
+      }
+    end
+    save_state
+    @on_update.call(ws_event)
+    puts "[moon] Sun #{is_up ? "rose" : "set"}"
+  end
+
   # Current moon state as a WebSocket event, for use in the connect snapshot.
   def ws_event
-    { type: "moon_state", moons: current_moons }
+    { type: "moon_state", moons: current_moons, sky_period: sky_period }
   end
 
   private
@@ -84,7 +124,9 @@ class MoonTracker
     raw = fetch_raw_firebase
     if raw
       puts "[moon] Loaded state from Firebase"
-      return parse_firebase_raw(raw)
+      sun = extract_sun_state(raw)
+      @sun_state = sun if sun
+      return extract_moon_state(raw)
     end
 
     local = load_local_state
@@ -97,14 +139,16 @@ class MoonTracker
     MOONS.each_with_object({}) { |moon, h| h[moon] = { up: nil, next_event_at: nil, last_event_t: nil } }
   end
 
-  # Push a moon_state update whenever any minute value ticks down.
+  # Push a moon_state update whenever any minute value or sky period ticks.
   def maybe_broadcast_tick
     current = current_moons
     minutes = MOONS.map { |m| current[m][:minutes_until] }
-    return if minutes == @last_broadcast_minutes
+    period  = sky_period
+    return if minutes == @last_broadcast_minutes && period == @last_broadcast_period
 
     @last_broadcast_minutes = minutes
-    @on_update.call({ type: "moon_state", moons: current })
+    @last_broadcast_period  = period
+    @on_update.call({ type: "moon_state", moons: current, sky_period: period })
   end
 
   # -- Periodic re-fetch ----------------------------------------------------
@@ -130,6 +174,13 @@ class MoonTracker
           puts "[moon] #{moon} updated from Firebase re-fetch"
           updated = true
         end
+
+        sun = extract_sun_state(raw)
+        if sun
+          @sun_state = sun
+          updated = true
+        end
+
         @next_fetch_delay = nil
       end
       save_state if updated
@@ -170,7 +221,7 @@ class MoonTracker
     nil
   end
 
-  def parse_firebase_raw(raw)
+  def extract_moon_state(raw)
     MOONS.each_with_object({}) do |moon, h|
       entry = raw[MOON_KEY[moon]]
       if entry && !entry["e"].nil? && entry["t"]
@@ -183,20 +234,29 @@ class MoonTracker
     end
   end
 
-  def push_firebase_update(moon, is_up, timestamp)
-    uri = URI.parse("https://dr-scripts.firebaseio.com/moon_data_v2/#{MOON_KEY[moon]}.json")
-    http = Net::HTTP.new(uri.host, uri.port)
-    http.use_ssl = true
-    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    http.open_timeout = 5
-    http.read_timeout = 5
+  # Returns a sun_state hash from Firebase raw data, or nil if not present.
+  # Does NOT modify @sun_state — caller is responsible.
+  def extract_sun_state(raw)
+    sun = raw["s"]
+    return nil unless sun
 
-    request = Net::HTTP::Put.new(uri.request_uri, "Content-Type" => "application/json")
-    request.body = { "t" => timestamp.to_i, "e" => is_up ? RISE : SET }.to_json
-    puts "[moon] Pushing #{moon} #{is_up ? "rise" : "set"} to Firebase"
-    http.request(request)
-  rescue => e
-    puts "[moon] Firebase push failed: #{e.message}"
+    rise_t = sun["r"]
+    set_t  = sun["s"]
+    return nil unless rise_t || set_t
+
+    if rise_t && set_t
+      if rise_t >= set_t
+        state = advance_sun_state(true, Time.at(rise_t) + SUN_UP_DURATION)
+      else
+        state = advance_sun_state(false, Time.at(set_t) + SUN_DOWN_DURATION)
+      end
+    elsif rise_t
+      state = advance_sun_state(true, Time.at(rise_t) + SUN_UP_DURATION)
+    else
+      state = advance_sun_state(false, Time.at(set_t) + SUN_DOWN_DURATION)
+    end
+
+    state.merge(last_rise_t: rise_t, last_set_t: set_t)
   end
 
   # -- Local file persistence -----------------------------------------------
@@ -210,6 +270,15 @@ class MoonTracker
     return nil unless File.exist?(state_file_path)
 
     raw = JSON.parse(File.read(state_file_path))
+
+    if (sun_entry = raw["__sun__"]) && !sun_entry["is_day"].nil? && sun_entry["next_event_at"]
+      sun = advance_sun_state(sun_entry["is_day"], Time.at(sun_entry["next_event_at"]))
+      @sun_state = sun.merge(
+        last_rise_t: sun_entry["last_rise_t"],
+        last_set_t:  sun_entry["last_set_t"],
+      )
+    end
+
     MOONS.each_with_object({}) do |moon, h|
       entry = raw[moon]
       if entry && !entry["up"].nil? && entry["next_event_at"]
@@ -225,15 +294,24 @@ class MoonTracker
   end
 
   def save_state
-    snapshot = @mutex.synchronize { @state.transform_values(&:dup) }
+    moon_snapshot, sun_snapshot = @mutex.synchronize { [@state.transform_values(&:dup), @sun_state.dup] }
+
     data = MOONS.each_with_object({}) do |moon, h|
-      s = snapshot[moon]
+      s = moon_snapshot[moon]
       h[moon] = {
         "up"            => s[:up],
         "next_event_at" => s[:next_event_at]&.to_i,
         "last_event_t"  => s[:last_event_t],
       }
     end
+
+    data["__sun__"] = {
+      "is_day"        => sun_snapshot[:is_day],
+      "next_event_at" => sun_snapshot[:next_event_at]&.to_i,
+      "last_rise_t"   => sun_snapshot[:last_rise_t],
+      "last_set_t"    => sun_snapshot[:last_set_t],
+    }
+
     File.write(state_file_path, JSON.generate(data))
   rescue => e
     puts "[moon] State save failed: #{e.message}"
@@ -253,6 +331,14 @@ class MoonTracker
     { up: up, next_event_at: next_event_at }
   end
 
+  def advance_sun_state(is_day, next_event_at)
+    while next_event_at <= Time.now
+      is_day = !is_day
+      next_event_at += is_day ? SUN_UP_DURATION : SUN_DOWN_DURATION
+    end
+    { is_day: is_day, next_event_at: next_event_at }
+  end
+
   def minutes_until(time)
     return nil if time.nil?
     [((time - Time.now) / 60).to_i, 0].max
@@ -263,6 +349,25 @@ class MoonTracker
       MOONS.each_with_object({}) do |moon, h|
         s = @state[moon]
         h[moon] = { up: s[:up], minutes_until: minutes_until(s[:next_event_at]) }
+      end
+    end
+  end
+
+  def sky_period
+    @mutex.synchronize do
+      # Trust override from game `time` text for up to SKY_OVERRIDE_TTL
+      if @sky_period_override && (Time.now - @sky_period_override_at) < SKY_OVERRIDE_TTL
+        return @sky_period_override
+      end
+
+      s = @sun_state
+      return "night" if s[:is_day].nil?
+
+      mins = minutes_until(s[:next_event_at])
+      if s[:is_day]
+        mins && mins <= DAWN_DUSK_THRESHOLD ? "dusk" : "day"
+      else
+        mins && mins <= DAWN_DUSK_THRESHOLD ? "dawn" : "night"
       end
     end
   end

@@ -265,13 +265,26 @@ class GameApp < Sinatra::Base
         @@rexp_last_polled = nil
       end
 
-      # Detect moon rise/set events in plain game text.
+      # Detect moon and sun rise/set events in plain game text.
       if event[:type] == "text" && @@moon_tracker
         text = event[:text].to_s.strip
         if (m = text.match(/^(Katamba|Xibar|Yavash) sets/))
           @@moon_tracker.moon_event(m[1].downcase, false)
         elsif (m = text.match(/^(Katamba|Xibar|Yavash) slowly rises/))
           @@moon_tracker.moon_event(m[1].downcase, true)
+        elsif text.match?(/heralding another fine day|rises to create the new day|as the sun rises, hidden|as the sun rises behind it|faintest hint of the rising sun|The rising sun slowly|Night slowly turns into day as the horizon/i)
+          @@moon_tracker.sun_event(true)
+        elsif text.match?(/The sun sinks below the horizon|night slowly drapes its starry banner|sun slowly sinks behind the scattered clouds and vanishes|grey light fades into a heavy mantle of black/i)
+          @@moon_tracker.sun_event(false)
+        elsif (m = text.match(/it is (?:currently .+ and it is (?:approaching |early |late )?)?(dawn|sunrise|morning|afternoon|midday|noon|dusk|sunset|evening|night|midnight)/i))
+          period = case m[1].downcase
+            when "dawn", "sunrise"           then "dawn"
+            when "dusk", "sunset"             then "dusk"
+            when "evening"                    then "night"
+            when "night", "midnight"         then "night"
+            else                                  "day"
+          end
+          @@moon_tracker.set_sky_period(period)
         end
       end
 
@@ -290,6 +303,7 @@ class GameApp < Sinatra::Base
         elapsed = Time.now - first_prompt_at
         state = @@game_state.snapshot
         if (autostart_done || elapsed >= 90) && (state[:roundtime].nil? || state[:roundtime] == 0)
+          @@game_connection.send_command("time")
           @@game_connection.send_command("inv list")
           initial_inv_sent = true
         end

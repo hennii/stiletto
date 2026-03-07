@@ -36,7 +36,7 @@ export default function App() {
   const {
     gameLines, vitals, room, compass, hands, spell, indicators,
     connected, exp, activeSpells, streams, scriptWindows, roundtime, casttime,
-    logStreams, mapZone, mapCurrentNode, mapLevel, inventory, charName, moons, send, sendMessage,
+    logStreams, mapZone, mapCurrentNode, mapLevel, inventory, charName, moons, skyPeriod, send, sendMessage,
   } = useGameSocket();
 
   useEffect(() => {
@@ -218,6 +218,7 @@ export default function App() {
         addToHistoryRef={addToHistoryRef}
         onInsertText={handleInsertText}
         moons={moons}
+        skyPeriod={skyPeriod}
       />
     </div>
     {highlightsOpen && <HighlightsModal onClose={() => setHighlightsOpen(false)} />}
