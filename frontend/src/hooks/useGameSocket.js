@@ -41,6 +41,7 @@ const initialState = {
   mapCurrentNode: null,
   mapLevel: 0,
   inventory: { worn: [], lastFullRefresh: null },
+  moons: null,
 };
 
 function appendLines(existing, newLine, max) {
@@ -333,6 +334,8 @@ function reducer(state, action) {
         mapCurrentNode: action.current_node,
         mapLevel: action.level,
       };
+    case "moon_state":
+      return { ...state, moons: action.moons };
     case "inventory_worn": {
       // Rebuild worn list from names, preserving known container contents for matching items.
       const existingMap = new Map(state.inventory.worn.map((i) => [i.name, i]));
@@ -516,6 +519,7 @@ export function useGameSocket() {
     mapCurrentNode: state.mapCurrentNode,
     mapLevel: state.mapLevel,
     inventory: state.inventory,
+    moons: state.moons,
     send,
     sendMessage,
   };

@@ -18,10 +18,11 @@ import ExpTracker from "./ExpTracker";
 import StreamPanel from "./StreamPanel";
 import Compass from "./Compass";
 import MapPanel from "./MapPanel";
+import MoonPanel from "./MoonPanel";
 
 const LAYOUT_KEY = "dr-client-layout";
 
-const DEFAULT_PANEL_ORDER = ["room", "map", "spells", "arrivals"];
+const DEFAULT_PANEL_ORDER = ["room", "map", "moons", "spells", "arrivals"];
 const DEFAULT_COLLAPSED = ["spells", "arrivals"];
 const DEFAULT_PANEL_SIZES = {
   exp: 300,
@@ -128,6 +129,8 @@ function renderPanelContent(id, props) {
       return <Compass compass={props.compass} onMove={props.onMove} />;
     case "map":
       return <MapPanel zone={props.mapZone} currentNode={props.mapCurrentNode} level={props.mapLevel} />;
+    case "moons":
+      return <MoonPanel moons={props.moons} />;
     case "exp":
       return <ExpTracker exp={props.exp} send={props.send} />;
     case "thoughts":
@@ -158,6 +161,7 @@ function getPanelTitle(id, scriptWindows) {
     case "room": return "Room";
     case "compass": return "Compass";
     case "map": return "Map";
+    case "moons": return "Moons";
     case "exp": return "Experience";
     case "thoughts": return "Thoughts";
     case "arrivals": return "Arrivals";
@@ -272,7 +276,7 @@ export const LeftSidebar = memo(function LeftSidebar({ exp, streams, send }) {
   );
 });
 
-const Sidebar = memo(function Sidebar({ room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel }) {
+const Sidebar = memo(function Sidebar({ room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, moons }) {
   const [panelOrder, setPanelOrder] = useState(() => {
     const layout = loadLayout();
     if (!layout.panelOrder) return DEFAULT_PANEL_ORDER;
@@ -363,7 +367,7 @@ const Sidebar = memo(function Sidebar({ room, exp, streams, activeSpells, compas
     document.addEventListener("mouseup", onMouseUp);
   }, [panelSizes]);
 
-  const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel };
+  const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, moons };
 
   return (
     <div className="sidebar">

@@ -20,9 +20,10 @@ import ExpTracker from "./ExpTracker";
 import StreamPanel from "./StreamPanel";
 import MapPanel from "./MapPanel";
 import InventoryPanel from "./InventoryPanel";
+import MoonPanel from "./MoonPanel";
 
 const LAYOUT_KEY = "dr-client-layout";
-const DEFAULT_S1_PANELS = ["room", "map", "spells", "arrivals", "inventory"];
+const DEFAULT_S1_PANELS = ["room", "map", "moons", "spells", "arrivals", "inventory"];
 const DEFAULT_S2_PANELS = [];
 const DEFAULT_COLLAPSED = ["spells", "arrivals"];
 const DEFAULT_PANEL_SIZES = { map: 300, spells: 200, arrivals: 200, inventory: 300 };
@@ -62,6 +63,7 @@ function renderPanelContent(id, props) {
   switch (id) {
     case "room":      return <RoomPanel room={props.room} onInsertText={props.onInsertText} send={props.send} addToHistoryRef={props.addToHistoryRef} />;
     case "map":       return <MapPanel zone={props.mapZone} currentNode={props.mapCurrentNode} level={props.mapLevel} />;
+    case "moons":     return <MoonPanel moons={props.moons} />;
     case "exp":       return <ExpTracker exp={props.exp} send={props.send} />;
     case "thoughts":  return <StreamPanel title="Thoughts" lines={props.streams.thoughts || []} colorizeThoughts />;
     case "arrivals":  return <StreamPanel title="Arrivals" lines={props.streams.logons || []} />;
@@ -87,6 +89,7 @@ function getPanelTitle(id, scriptWindows) {
   switch (id) {
     case "room":      return "Room";
     case "map":       return "Map";
+    case "moons":     return "Moons";
     case "exp":       return "Experience";
     case "thoughts":  return "Thoughts";
     case "arrivals":  return "Arrivals";
@@ -172,7 +175,7 @@ function SidebarColumn({ columnId, panelIds, collapsedPanels, panelSizes, onTogg
 const RightSidebars = memo(function RightSidebars({
   room, exp, streams, activeSpells, compass, scriptWindows,
   onMove, mapZone, mapCurrentNode, mapLevel, hiddenPanels = new Set(),
-  inventory, roundtime, send, addToHistoryRef, onInsertText,
+  inventory, roundtime, send, addToHistoryRef, onInsertText, moons,
 }) {
   // s1 = outer (original) sidebar. Reads legacy panelOrder key for back-compat.
   const [s1Panels, setS1Panels] = useState(() => {
@@ -328,7 +331,7 @@ const RightSidebars = memo(function RightSidebars({
   }, []);
 
   // ── Render ───────────────────────────────────────────────────────────────
-  const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, inventory, roundtime, send, addToHistoryRef, onInsertText };
+  const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, inventory, roundtime, send, addToHistoryRef, onInsertText, moons };
 
   return (
     <div ref={containerRef} className="right-sidebars">

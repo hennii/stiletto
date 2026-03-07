@@ -16,6 +16,7 @@ require_relative "lib/game_state"
 require_relative "lib/script_api"
 require_relative "lib/log_service"
 require_relative "lib/map_service"
+require_relative "lib/moon_tracker"
 
 Faye::WebSocket.load_adapter("thin")
 
@@ -35,6 +36,7 @@ class GameApp < Sinatra::Base
   @@script_api = nil
   @@log_service = nil
   @@map_service = nil
+  @@moon_tracker = nil
   @@event_batch = []
   @@batch_mutex = Mutex.new
   @@flush_scheduled = false
@@ -65,6 +67,8 @@ class GameApp < Sinatra::Base
       # Send current map state
       map_state = @@map_service&.current_map_state
       ws.send(map_state.to_json) if map_state
+      # Send current moon state
+      ws.send(@@moon_tracker.ws_event.to_json) if @@moon_tracker
     end
 
     ws.on :message do |event|
@@ -220,12 +224,18 @@ class GameApp < Sinatra::Base
       game_code: game_code,
     )
 
-    # Step 3: Set up logging, maps, and XML parser
+    # Step 3: Set up logging, maps, moon tracker, and XML parser
     log_dir = File.join(__dir__, "logs")
     @@log_service = LogService.new(log_dir, character)
 
     maps_dir = File.join(__dir__, "maps")
     @@map_service = MapService.new(maps_dir)
+
+    @@moon_tracker = MoonTracker.new(
+      data_dir: File.join(__dir__, "data"),
+      on_update: ->(event) { GameApp.broadcast(event) },
+    )
+    @@moon_tracker.start
 
     parser = XmlParser.new
     initial_inv_sent = false
@@ -253,6 +263,16 @@ class GameApp < Sinatra::Base
 
       if event[:type] == "exp" && event[:skill] == "sleep" && !event[:text]&.match?(/fully relaxed/)
         @@rexp_last_polled = nil
+      end
+
+      # Detect moon rise/set events in plain game text.
+      if event[:type] == "text" && @@moon_tracker
+        text = event[:text].to_s.strip
+        if (m = text.match(/^(Katamba|Xibar|Yavash) sets/))
+          @@moon_tracker.moon_event(m[1].downcase, false)
+        elsif (m = text.match(/^(Katamba|Xibar|Yavash) slowly rises/))
+          @@moon_tracker.moon_event(m[1].downcase, true)
+        end
       end
 
       # Lich intercepts `exp` and outputs rexp as plain text instead of a component update.
