@@ -348,6 +348,11 @@ class MoonTracker
     @mutex.synchronize do
       MOONS.each_with_object({}) do |moon, h|
         s = @state[moon]
+        if s[:next_event_at] && s[:next_event_at] <= Time.now
+          s = advance_moon_state(moon, s[:up], s[:next_event_at])
+          s[:last_event_t] = @state[moon][:last_event_t]
+          @state[moon] = s
+        end
         h[moon] = { up: s[:up], minutes_until: minutes_until(s[:next_event_at]) }
       end
     end
