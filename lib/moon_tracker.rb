@@ -105,6 +105,9 @@ class MoonTracker
         last_rise_t:   is_up ? now.to_i : @sun_state[:last_rise_t],
         last_set_t:    is_up ? @sun_state[:last_set_t] : now.to_i,
       }
+      # Direct sun observation overrides any time-text override
+      @sky_period_override = nil
+      @sky_period_override_at = nil
     end
     save_state
     @on_update.call(ws_event)

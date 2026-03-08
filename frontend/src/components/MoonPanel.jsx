@@ -3,7 +3,7 @@ import katambaImg from "../images/Katamba.png";
 import yavashImg from "../images/Yavash.png";
 import xibarImg from "../images/Xibar.png";
 
-const MOON_NAMES = ["katamba", "yavash", "xibar"];
+const MOON_NAMES = ["yavash", "katamba", "xibar"];
 const MOON_IMAGES = { katamba: katambaImg, yavash: yavashImg, xibar: xibarImg };
 
 // Minutes from a transition at which a moon is considered "on the horizon"
@@ -98,7 +98,7 @@ export default function MoonPanel({ moons, skyPeriod }) {
               <img
                 src={MOON_IMAGES[name]}
                 alt={capitalize(name)}
-                className={`moon-image moon-image--${phase}`}
+                className={`moon-image moon-image-${name} moon-image--${phase}`}
                 style={horizonStyle}
               />
             </div>

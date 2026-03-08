@@ -1348,6 +1348,16 @@ html, body, #root {
   width: auto;
   display: block;
   flex-shrink: 0;
+
+  &.moon-image-katamba {
+    height: 68px;
+  }
+  &.moon-image-katamba {
+    height: 68px;
+  }
+  &.moon-image-xibar {
+    height: 38px;
+  }
 }
 
 /* Moon below horizon — invisible but space preserved */
