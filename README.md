@@ -1,4 +1,4 @@
-# dr-client
+# Stiletto
 
 Web-based DragonRealms MUD client. Replaces Frostbite (Qt6 desktop client) with a local browser-based UI. Single-user, runs on localhost.
 
@@ -61,7 +61,7 @@ Vite proxies `/ws` to the Sinatra backend automatically. Changes to source files
 ## Project Structure
 
 ```
-dr-client/
+stiletto/
 ├── server.rb              # Sinatra app, WebSocket endpoint
 ├── dr                     # CLI entry point (symlink to ~/.local/bin/dr)
 ├── start.sh               # Start one or all character servers

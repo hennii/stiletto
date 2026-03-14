@@ -32,7 +32,7 @@ Browser (React/Vite) ↔ WebSocket ↔ Sinatra (Ruby) ↔ TCP ↔ Lich5 ↔ DR g
 ## Project Structure
 
 ```
-dr-client/
+stiletto/
 ├── server.rb              # Sinatra app, WebSocket endpoint, wires components together
 ├── lib/
 │   ├── eauth.rb           # SSL auth to eaccess.play.net

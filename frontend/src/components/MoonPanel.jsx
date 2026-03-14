@@ -98,7 +98,7 @@ export default function MoonPanel({ moons, skyPeriod }) {
               <img
                 src={MOON_IMAGES[name]}
                 alt={capitalize(name)}
-                className={`moon-image moon-image-${name} moon-image--${phase}`}
+                className={`moon-image moon-image-${name} moon-image--${phase} moon-image-${period}`}
                 style={horizonStyle}
               />
             </div>
