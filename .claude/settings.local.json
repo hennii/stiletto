@@ -14,7 +14,12 @@
       "Bash(lsof:*)",
       "Bash(kill:*)",
       "Bash(cat:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(gh repo:*)",
+      "Bash(git remote:*)",
+      "Bash(ln -sf /Users/josh/dragonrealms/stiletto/dr /Users/josh/.local/bin/dr && ls -la /Users/josh/.local/bin/dr)"
     ]
   }
 }
