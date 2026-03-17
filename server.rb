@@ -20,6 +20,10 @@ require_relative "lib/moon_tracker"
 
 Faye::WebSocket.load_adapter("thin")
 
+def log(msg)
+  puts "[#{Time.now.strftime('%H:%M:%S')}] #{msg}"
+end
+
 class GameApp < Sinatra::Base
   set :server, :thin
   set :port, (ENV["DR_PORT"] || 4567).to_i
@@ -53,7 +57,7 @@ class GameApp < Sinatra::Base
     ws = Faye::WebSocket.new(env, nil, ping: 15)
 
     ws.on :open do |_event|
-      puts "[ws] Client connected"
+      log "[ws] Client connected"
       @@ws_mutex.synchronize { @@ws_clients << ws }
       # Send current state snapshot
       ws.send({ type: "snapshot", state: @@game_state.snapshot }.to_json)
@@ -78,7 +82,7 @@ class GameApp < Sinatra::Base
       case data["type"]
       when "command"
         if data["text"]
-          puts "[ws] Command: #{data['text']}"
+          log "[ws] Command: #{data['text']}"
           @@log_service&.log_command(data["text"])
           @@log_service&.log_raw_command(data["text"])
           @@game_connection&.send_command(data["text"])
@@ -100,7 +104,7 @@ class GameApp < Sinatra::Base
     end
 
     ws.on :close do |event|
-      puts "[ws] Client disconnected (code=#{event.code}, reason=#{event.reason})"
+      log "[ws] Client disconnected (code=#{event.code}, reason=#{event.reason})"
       @@ws_mutex.synchronize { @@ws_clients.delete(ws) }
     end
 
@@ -137,7 +141,7 @@ class GameApp < Sinatra::Base
         begin
           ws.send(json)
         rescue => e
-          puts "[ws] Send error: #{e.message}"
+          log "[ws] Send error: #{e.message}"
         end
       end
     end
@@ -152,7 +156,7 @@ class GameApp < Sinatra::Base
     return unless fully_asleep?
     return if @@rexp_last_polled && (Time.now - @@rexp_last_polled) < REXP_POLL_INTERVAL
     @@rexp_last_polled = Time.now
-    puts "[rexp] Polling REXP during roundtime"
+    log "[rexp] Polling REXP during roundtime"
     @@game_connection&.send_command("exp")
   end
 
@@ -204,19 +208,19 @@ class GameApp < Sinatra::Base
     game_code = ENV["DR_GAME_CODE"] || "DR"
 
     # Step 1: eAuth
-    puts "=== Authenticating with eAccess ==="
+    log "=== Authenticating with eAccess ==="
     login = EAuth.login(
       account: account,
       password: password,
       character: character,
       game_code: game_code,
     )
-    puts "  Host: #{login[:host]}"
-    puts "  Port: #{login[:port]}"
-    puts "  Key:  #{login[:key][0..8]}..."
+    log "  Host: #{login[:host]}"
+    log "  Port: #{login[:port]}"
+    log "  Key:  #{login[:key][0..8]}..."
 
     # Step 2: Launch Lich
-    puts "\n=== Launching Lich ==="
+    log "=== Launching Lich ==="
     lich_port = LichLauncher.launch(
       host: login[:host],
       port: login[:port],
@@ -312,7 +316,7 @@ class GameApp < Sinatra::Base
     parser.on_raw_line = ->(line) { @@log_service.log_raw(line) }
 
     # Step 4: Connect to Lich
-    puts "\n=== Connecting to game via Lich ==="
+    log "=== Connecting to game via Lich ==="
     @@game_connection = GameConnection.new(
       host: "127.0.0.1",
       port: lich_port,
@@ -322,7 +326,7 @@ class GameApp < Sinatra::Base
     @@game_connection.connect
 
     # Step 5: Start ScriptApiServer for kor-scripts
-    puts "\n=== Starting ScriptApiServer ==="
+    log "=== Starting ScriptApiServer ==="
     @@script_api = ScriptApiServer.new(
       port: (ENV["SCRIPT_API_PORT"] || 49166).to_i,
       game_state: @@game_state,
@@ -337,7 +341,7 @@ class GameApp < Sinatra::Base
     File.write(pid_file, Process.pid.to_s)
 
     at_exit do
-      puts "\n=== Shutting down ==="
+      log "=== Shutting down ==="
       File.delete(pid_file) rescue nil
       @@log_service&.close
       @@script_api&.stop
@@ -346,7 +350,7 @@ class GameApp < Sinatra::Base
     end
 
     # Step 7: Start web server
-    puts "\n=== Starting web server on http://localhost:#{settings.port} ==="
+    log "=== Starting web server on http://localhost:#{settings.port} ==="
     run!
   end
 end

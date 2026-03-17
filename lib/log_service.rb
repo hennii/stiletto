@@ -160,7 +160,7 @@ class LogService
     FileUtils.mkdir_p(@base_dir)
     File.write(@settings_path, JSON.pretty_generate({ enabled_streams: @enabled.keys }))
   rescue => e
-    puts "[log_service] Failed to save settings: #{e.message}"
+    $stderr.puts "[#{Time.now.strftime('%H:%M:%S')}] [log_service] Failed to save settings: #{e.message}"
   end
 
   def file_for(stream)
