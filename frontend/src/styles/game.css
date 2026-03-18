@@ -824,6 +824,7 @@ html, body, #root {
     text-align: left;
     width: 50%;
 }
+.exp-to-clear { color: var(--text-faint); text-align: right; font-variant-numeric: tabular-nums; }
 .exp-state {
   width: 9em;
   text-align: left;
@@ -965,6 +966,42 @@ html, body, #root {
   cursor: pointer;
 }
 .learned-btn:hover { background: var(--bg-elevated-hover); color: var(--text-bright); }
+
+/* Drain tab */
+.drain-view {
+  display: flex;
+  flex-direction: column;
+}
+.drain-empty {
+  color: var(--text-subtle);
+  padding: 4px;
+}
+.drain-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+}
+.drain-table th {
+  text-align: left;
+  color: var(--text-faint);
+  padding: 2px 4px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-surface);
+  cursor: default;
+}
+.drain-table th:not(:first-child) { text-align: right; }
+.drain-table td { padding: 1px 4px; }
+.drain-table th:nth-child(1), .drain-table td:nth-child(1) { width: auto; }
+.drain-table th:nth-child(2) { width: 6em; text-align: center; padding-left: 0.5em; }
+.drain-table td:nth-child(2) { width: 6em; text-align: center; padding-left: 0.5em; }
+.drain-table th:nth-child(3) { width: 9em; text-align: center; padding-left: 0.5em; }
+.drain-table td:nth-child(3) { width: 9em; text-align: center; padding-left: 0.5em; }
+.drain-table th:nth-child(4), .drain-table td:nth-child(4) { width: 3em; text-align: right; padding-left: 0.5em; }
+.drain-skillset-header td { color: var(--text-dim); font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.08em; padding-top: 8px; padding-bottom: 2px; border-bottom: 1px solid #333; text-align: left; }
+.drain-skill { color: var(--text-skill); }
+.drain-fraction { color: var(--text-secondary); }
+.drain-rank-gain { color: var(--text-secondary); white-space: nowrap; }
+.drain-samples { color: var(--text-faint); }
 
 /* Stream panel */
 .stream-content {

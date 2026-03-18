@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 
 const LEARNING_COLORS = {
   "clear": "#666666",        //  0 - gray
@@ -103,7 +103,7 @@ function toMinutes(str) {
     return parseInt(hoursMatch[1], 10) * 60;
   }
 
-  if (/less than a minute/.test(str)) return 1;
+  if (/less than a minute/.test(str)) return 0;
   if (/none/.test(str)) return 0;
 
   throw new Error("Invalid time format");
@@ -165,7 +165,43 @@ function formatLearningTime(hours) {
   return `${h}h ${m}m`;
 }
 
-export default function ExpTracker({ exp, send }) {
+const SKILLSETS = {
+  "Guild":    ["Astrology", "Bardic Lore", "Backstab", "Butcher's Eye", "Conviction", "Empathy", "Expertise", "Inner Magic", "Lunar Magic", "Scouting", "Summoning", "Thanatology", "Theurgy"],
+  "Armor":    ["Shield Usage", "Light Armor", "Chain Armor", "Brigandine", "Plate Armor", "Defending"],
+  "Weapons":  ["Parry Ability", "Small Edged", "Large Edged", "Twohanded Edged", "Small Blunt", "Large Blunt", "Twohanded Blunt", "Polearms", "Staves", "Bows", "Crossbows", "Slings", "Light Thrown", "Heavy Thrown", "Brawling", "Offhand Weapon", "Melee Mastery", "Missile Mastery"],
+  "Magic":    ["Primary Magic", "Arcana", "Attunement", "Augmentation", "Debilitation", "Targeted Magic", "Utility", "Warding", "Sorcery"],
+  "Survival": ["Evasion", "Athletics", "Perception", "Stealth", "Locksmithing", "Thievery", "First Aid", "Outdoorsmanship", "Skinning"],
+  "Lore":     ["Alchemy", "Appraisal", "Enchanting", "Engineering", "Forging", "Outfitting", "Performance", "Scholarship", "Tactics"],
+};
+
+const SKILL_TO_SKILLSET = Object.fromEntries(
+  Object.entries(SKILLSETS).flatMap(([set, skills]) => skills.map(s => [s, set]))
+);
+
+function groupBySkillset(entries) {
+  const groups = {};
+  for (const [skill, data] of entries) {
+    const set = SKILL_TO_SKILLSET[skill] || "Other";
+    (groups[set] ||= []).push([skill, data]);
+  }
+  // Return in canonical order, Other last
+  const order = [...Object.keys(SKILLSETS), "Other"];
+  return order.filter(s => groups[s]).map(s => [s, groups[s]]);
+}
+
+function formatTimeToClear(lastMindstate, drainFraction) {
+  if (lastMindstate == null || !drainFraction) return '--';
+  if (lastMindstate === 0) return '-';
+  const levelsPerPulse = drainFraction * 34;
+  const seconds = Math.ceil(lastMindstate / levelsPerPulse) * 200;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m`;
+}
+
+
+export default function ExpTracker({ exp, pulseData = {}, send }) {
   const [activeTab, setActiveTab] = useState('current');
   const [baseline, setBaseline] = useState(() => loadBaseline());
   const [resetting, setResetting] = useState(false);
@@ -285,6 +321,14 @@ export default function ExpTracker({ exp, send }) {
     return () => clearTimeout(resetTimerRef.current);
   }, []);
 
+  // Tick every second to refresh pulse countdown timers
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (activeTab !== 'drain') return;
+    const id = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [activeTab]);
+
   function handleReset() {
     // Immediately baseline current skills so gains clear right away (no "appear then drop" flash)
     const snapSkills = (s) => Object.fromEntries(s.map(([n, d]) => [n, { rank: d.rank, percent: d.percent || 0 }]));
@@ -329,6 +373,10 @@ export default function ExpTracker({ exp, send }) {
           className={`exp-tab-btn${activeTab === 'learned' ? ' active' : ''}`}
           onClick={() => setActiveTab('learned')}
         >Learned</button>
+        <button
+          className={`exp-tab-btn${activeTab === 'drain' ? ' active' : ''}`}
+          onClick={() => setActiveTab('drain')}
+        >Drain</button>
       </div>
 
       {activeTab === 'current' && (
@@ -340,6 +388,7 @@ export default function ExpTracker({ exp, send }) {
                 <th className="text-align-center">Rank</th>
                 <th>Mindstate</th>
                 <th></th>
+                <th title="Estimated time to drain current mindstate to clear">Time</th>
               </tr>
             </thead>
             <tbody>
@@ -357,6 +406,7 @@ export default function ExpTracker({ exp, send }) {
                     {data.state || "-"}
                   </td>
                   <td className="exp-mindstate" style={{ color: learningColor(data.state) }}>{mindstateLabel(data.state)}</td>
+                  <td className="exp-to-clear">{formatTimeToClear(pulseData[name]?.last_mindstate, pulseData[name]?.drain_fraction)}</td>
                 </tr>
               ))}
             </tbody>
@@ -392,6 +442,58 @@ export default function ExpTracker({ exp, send }) {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'drain' && (
+        <div className="drain-view">
+          {Object.values(pulseData).every(d => d.last_pulse_at == null) ? (
+            <div className="drain-empty">No pulse data yet — waiting for exp drain events.</div>
+          ) : (
+            <table className="drain-table">
+              <thead>
+                <tr>
+                  <th>Skill</th>
+                  <th title="Mindstate levels drained per pulse (requires 5+ samples)">Levels/pulse</th>
+                  <th title="Ranks gained per pulse: normal / REXP (requires 5+ samples each)">Rank/pulse</th>
+                  <th title="Pulses where mindstate decreased, used to calculate Levels/pulse">Samples</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupBySkillset(
+                  Object.entries(pulseData)
+                    .filter(([, data]) => data.reliable_pulses > 0 || (data.rank_gain_pulses ?? 0) > 0 || (data.rank_gain_pulses_rexp ?? 0) > 0)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                ).flatMap(([skillset, entries]) => [
+                  <tr key={`header-${skillset}`} className="drain-skillset-header">
+                    <td colSpan={4}>{skillset}</td>
+                  </tr>,
+                  ...entries.map(([skill, data]) => (
+                    <tr key={skill}>
+                      <td className="drain-skill">{skill}</td>
+                      <td className="drain-fraction">
+                        {data.drain_fraction != null
+                          ? (data.drain_fraction * 34).toFixed(3)
+                          : '--'}
+                      </td>
+                      <td className="drain-rank-gain">
+                        {data.rank_gain_per_pulse != null && data.rank_gain_per_pulse_rexp != null ? (
+                          `${data.rank_gain_per_pulse.toFixed(3)} | ${data.rank_gain_per_pulse_rexp.toFixed(3)}r`
+                        ) : data.rank_gain_per_pulse != null ? (
+                          data.rank_gain_per_pulse.toFixed(3)
+                        ) : data.rank_gain_per_pulse_rexp != null ? (
+                          `${data.rank_gain_per_pulse_rexp.toFixed(3)}r`
+                        ) : '--'}
+                      </td>
+                      <td className="drain-samples">
+                        {data.reliable_pulses}
+                      </td>
+                    </tr>
+                  ))
+                ])}
+              </tbody>
+            </table>
+          )}
+        </div>
       )}
 
       {activeTab === 'learned' && (

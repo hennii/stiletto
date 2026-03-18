@@ -3,9 +3,10 @@ require "uri"
 require "json"
 
 class ScriptApiServer
-  def initialize(port:, game_state:, on_window_event:, on_command:)
+  def initialize(port:, game_state:, on_window_event:, on_command:, pulse_tracker: nil)
     @port = port
     @game_state = game_state
+    @pulse_tracker = pulse_tracker
     @on_window_event = on_window_event
     @on_command = on_command
     @windows = {}
@@ -216,6 +217,21 @@ class ScriptApiServer
 
     when "EXP_NAMES"
       state[:exp].keys.join("\n")
+
+    when "EXP_PULSE_DATA"
+      skill = args[0]
+      return "" unless skill && @pulse_tracker
+      char = state[:char_name]
+      return "" unless char
+      data = @pulse_tracker.snapshot(char)[skill]
+      return "" unless data
+      data.to_json
+
+    when "EXP_PULSE_ALL"
+      return "" unless @pulse_tracker
+      char = state[:char_name]
+      return "" unless char
+      @pulse_tracker.snapshot(char).to_json
 
     when "ACTIVE_SPELLS"
       state[:active_spells].to_s

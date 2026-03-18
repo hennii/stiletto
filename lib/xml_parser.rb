@@ -14,6 +14,7 @@ class XmlParser
     @current_style = nil
     @left_hand = ""
     @right_hand = ""
+    @prompt_time = nil
   end
 
   def feed(line)
@@ -104,6 +105,7 @@ class XmlParser
       flush_text
       emit(type: "prompt_spacer")
       time = node["time"]&.to_i
+      @prompt_time = time
       emit(type: "prompt", time: time)
 
     when "gamestyle"
@@ -276,7 +278,10 @@ class XmlParser
     if id =~ /^exp (.+)$/i
       skill = $1.strip
       text = node.text.strip
-      emit(type: "exp", skill: skill, text: text)
+      # Pulse events are automatic 200s drain updates (no <preset> child).
+      # THINK responses wrap content in <preset id='whisper'> — not a pulse.
+      pulse = node.at("preset").nil?
+      emit(type: "exp", skill: skill, text: text, pulse: pulse, timestamp: @prompt_time)
     elsif id =~ /^room (desc|objs|players|exits)$/i
       field = $1.downcase
       html = node.inner_html.strip

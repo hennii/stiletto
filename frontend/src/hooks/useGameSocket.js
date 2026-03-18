@@ -43,6 +43,7 @@ const initialState = {
   inventory: { worn: [], lastFullRefresh: null },
   moons: null,
   skyPeriod: localStorage.getItem("dr-sky-period") || "night",
+  pulseData: {},
 };
 
 function appendLines(existing, newLine, max) {
@@ -113,6 +114,7 @@ function reducer(state, action) {
           worn: action.state.inventory?.worn || [],
           lastFullRefresh: action.state.inventory?.last_full_refresh || null,
         },
+        pulseData: action.pulse_data || {},
       };
     case "text": {
       const seg = {
@@ -267,6 +269,11 @@ function reducer(state, action) {
           ...state.exp,
           [action.skill]: parseExp(action.skill, action.text),
         },
+      };
+    case "pulse_data":
+      return {
+        ...state,
+        pulseData: { ...state.pulseData, ...action.data },
       };
     case "stream_clear":
       if (action.id === "percWindow") return { ...state, pendingSpells: "" };
@@ -525,6 +532,7 @@ export function useGameSocket() {
     inventory: state.inventory,
     moons: state.moons,
     skyPeriod: state.skyPeriod,
+    pulseData: state.pulseData,
     send,
     sendMessage,
   };

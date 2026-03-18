@@ -36,7 +36,8 @@ export default function App() {
   const {
     gameLines, vitals, room, compass, hands, spell, indicators,
     connected, exp, activeSpells, streams, scriptWindows, roundtime, casttime,
-    logStreams, mapZone, mapCurrentNode, mapLevel, inventory, charName, moons, skyPeriod, send, sendMessage,
+    logStreams, mapZone, mapCurrentNode, mapLevel, inventory, charName, moons, skyPeriod,
+    pulseData, send, sendMessage,
   } = useGameSocket();
 
   useEffect(() => {
@@ -176,7 +177,7 @@ export default function App() {
       className="app"
       style={{ gridTemplateColumns: `${leftSidebarWidth}px 4px 1fr 4px ${sidebarWidth}px` }}
     >
-      <LeftSidebar exp={exp} streams={streams} send={send} />
+      <LeftSidebar exp={exp} streams={streams} pulseData={pulseData} send={send} />
       <div className="left-sidebar-divider" onMouseDown={onLeftDividerMouseDown} />
       <MainToolbar
         logStreams={logStreams}

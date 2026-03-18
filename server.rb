@@ -17,6 +17,7 @@ require_relative "lib/script_api"
 require_relative "lib/log_service"
 require_relative "lib/map_service"
 require_relative "lib/moon_tracker"
+require_relative "lib/pulse_tracker"
 
 Faye::WebSocket.load_adapter("thin")
 
@@ -41,6 +42,7 @@ class GameApp < Sinatra::Base
   @@log_service = nil
   @@map_service = nil
   @@moon_tracker = nil
+  @@pulse_tracker = nil
   @@event_batch = []
   @@batch_mutex = Mutex.new
   @@flush_scheduled = false
@@ -60,7 +62,9 @@ class GameApp < Sinatra::Base
       log "[ws] Client connected"
       @@ws_mutex.synchronize { @@ws_clients << ws }
       # Send current state snapshot
-      ws.send({ type: "snapshot", state: @@game_state.snapshot }.to_json)
+      snap = @@game_state.snapshot
+      pulse_data = @@pulse_tracker ? @@pulse_tracker.snapshot(snap[:char_name]) : {}
+      ws.send({ type: "snapshot", state: snap, pulse_data: pulse_data }.to_json)
       # Send recent thoughts history from logs
       if @@log_service
         thoughts_history = @@log_service.read_recent("thoughts", hours: 24)
@@ -235,6 +239,9 @@ class GameApp < Sinatra::Base
     maps_dir = File.join(__dir__, "maps")
     @@map_service = MapService.new(maps_dir)
 
+    pulse_data_path = File.join(__dir__, "settings", "pulse_data_#{character.downcase}.json")
+    @@pulse_tracker = PulseTracker.new(pulse_data_path)
+
     @@moon_tracker = MoonTracker.new(
       data_dir: File.join(__dir__, "data"),
       on_update: ->(event) { GameApp.broadcast(event) },
@@ -267,6 +274,31 @@ class GameApp < Sinatra::Base
 
       if event[:type] == "exp" && event[:skill] == "sleep" && !event[:text]&.match?(/fully relaxed/)
         @@rexp_last_polled = nil
+      end
+
+      if event[:type] == "exp" && event[:pulse] && @@pulse_tracker
+        char = @@game_state.snapshot[:char_name]
+        if char
+          snap = @@game_state.snapshot
+          exp_data = snap[:exp][event[:skill]]
+          rexp_text = snap.dig(:exp, "rexp", :text).to_s
+          rexp_stored = rexp_text[/Rested EXP Stored:\s+(.+?)(?:\s{2}|$)/, 1].to_s.strip.downcase
+          rexp_usable = rexp_text[/Usable This Cycle:\s+(.+?)(?:\s{2}|$)/, 1].to_s.strip.downcase
+          rexp_positive = ->(val) { !val.empty? && val != "none" && val != "less than a minute" && !val.start_with?("0 ") && val != "0" }
+          rexp_active = rexp_positive.(rexp_stored) && rexp_positive.(rexp_usable)
+          rank_with_pct = exp_data && exp_data[:rank] ? exp_data[:rank] + (exp_data[:percent] || 0).to_f / 100.0 : nil
+          skill_summary = @@pulse_tracker.record(
+            char,
+            event[:skill],
+            rank_with_pct,
+            exp_data&.dig(:state),
+            event[:timestamp],
+            rexp_active: rexp_active,
+          )
+          if skill_summary
+            broadcast(type: "pulse_data", data: { event[:skill] => skill_summary })
+          end
+        end
       end
 
       # Detect moon and sun rise/set events in plain game text.
@@ -330,6 +362,7 @@ class GameApp < Sinatra::Base
     @@script_api = ScriptApiServer.new(
       port: (ENV["SCRIPT_API_PORT"] || 49166).to_i,
       game_state: @@game_state,
+      pulse_tracker: @@pulse_tracker,
       on_window_event: ->(event) { broadcast(event) },
       on_command: ->(cmd) { @@game_connection.send_command(cmd) },
     )
@@ -343,6 +376,7 @@ class GameApp < Sinatra::Base
     at_exit do
       log "=== Shutting down ==="
       File.delete(pid_file) rescue nil
+      @@pulse_tracker&.persist
       @@log_service&.close
       @@script_api&.stop
       @@game_connection&.close

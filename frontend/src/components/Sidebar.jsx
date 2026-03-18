@@ -132,7 +132,7 @@ function renderPanelContent(id, props) {
     case "moons":
       return <MoonPanel moons={props.moons} />;
     case "exp":
-      return <ExpTracker exp={props.exp} send={props.send} />;
+      return <ExpTracker exp={props.exp} pulseData={props.pulseData} send={props.send} />;
     case "thoughts":
       return <StreamPanel title="Thoughts" lines={props.streams.thoughts || []} colorizeThoughts />;
     case "arrivals":
@@ -183,7 +183,7 @@ const LEFT_DEFAULT_PANEL_SIZES = {
   thoughts: 200,
 };
 
-export const LeftSidebar = memo(function LeftSidebar({ exp, streams, send }) {
+export const LeftSidebar = memo(function LeftSidebar({ exp, streams, pulseData, send }) {
   const [panelOrder, setPanelOrder] = useState(() => {
     const layout = loadLayout();
     return layout.leftPanelOrder || LEFT_DEFAULT_PANEL_ORDER;
@@ -251,7 +251,7 @@ export const LeftSidebar = memo(function LeftSidebar({ exp, streams, send }) {
     document.addEventListener("mouseup", onMouseUp);
   }, [panelSizes]);
 
-  const contentProps = { exp, streams, send };
+  const contentProps = { exp, streams, pulseData, send };
 
   return (
     <div className="left-sidebar">
