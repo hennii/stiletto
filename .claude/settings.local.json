@@ -19,7 +19,11 @@
       "Bash(git push:*)",
       "Bash(gh repo:*)",
       "Bash(git remote:*)",
-      "Bash(ln -sf /Users/josh/dragonrealms/stiletto/dr /Users/josh/.local/bin/dr && ls -la /Users/josh/.local/bin/dr)"
+      "Bash(ln -sf /Users/josh/dragonrealms/stiletto/dr /Users/josh/.local/bin/dr && ls -la /Users/josh/.local/bin/dr)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:elanthipedia.play.net)"
     ]
   }
 }
