@@ -276,7 +276,7 @@ class GameApp < Sinatra::Base
         @@rexp_last_polled = nil
       end
 
-      if event[:type] == "exp" && event[:pulse] && @@pulse_tracker
+      if event[:type] == "exp" && event[:pulse] && @@pulse_tracker && !GameApp.fully_asleep?
         char = @@game_state.snapshot[:char_name]
         if char
           snap = @@game_state.snapshot
