@@ -22,7 +22,7 @@ module LichLauncher
       @sal_file.path,
     ]
 
-    puts "[lich_launcher] Starting: #{cmd.join(' ')}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [lich_launcher] Starting: #{cmd.join(' ')}"
 
     # Clear Bundler env so Lich runs with its own gem context
     stdin, stdout_and_err, wait_thread = Bundler.with_unbundled_env do
@@ -41,7 +41,7 @@ module LichLauncher
       line = stdout_and_err.gets
       break unless line
 
-      puts "[lich] #{line.chomp}"
+      puts "[#\{Time.now.strftime('%H:%M:%S')}] [lich] #{line.chomp}"
 
       if line =~ /LICH_READY port=(\d+)/
         listen_port = $1.to_i
@@ -54,17 +54,17 @@ module LichLauncher
     # Keep reading lich output in background
     Thread.new do
       while (line = stdout_and_err.gets)
-        puts "[lich] #{line.chomp}"
+        puts "[#\{Time.now.strftime('%H:%M:%S')}] [lich] #{line.chomp}"
       end
     end
 
-    puts "[lich_launcher] Lich listening on port #{listen_port}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [lich_launcher] Lich listening on port #{listen_port}"
     listen_port
   end
 
   def self.shutdown
     if @pid
-      puts "[lich_launcher] Killing Lich (PID #{@pid})"
+      puts "[#\{Time.now.strftime('%H:%M:%S')}] [lich_launcher] Killing Lich (PID #{@pid})"
       Process.kill("KILL", @pid) rescue nil
       Process.wait(@pid) rescue nil
       @pid = nil

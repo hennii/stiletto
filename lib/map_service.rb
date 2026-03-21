@@ -68,7 +68,7 @@ class MapService
     Dir.glob(File.join(maps_dir, "*.xml")).sort.each do |file|
       parse_zone_file(file)
     end
-    puts "  [map] Loaded #{@zones.size} zones, #{@hash_index.size} room hashes"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}]   [map] Loaded #{@zones.size} zones, #{@hash_index.size} room hashes"
   end
 
   def parse_zone_file(file)

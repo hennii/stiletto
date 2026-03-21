@@ -20,7 +20,7 @@ class ScriptApiServer
   def start
     @server = TCPServer.new("127.0.0.1", @port)
     @server.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
-    puts "[script_api] Listening on 127.0.0.1:#{@port}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Listening on 127.0.0.1:#{@port}"
 
     @accept_thread = Thread.new do
       loop do
@@ -29,19 +29,19 @@ class ScriptApiServer
           client.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
           client.sync = true
           @clients_mutex.synchronize { @clients << client }
-          puts "[script_api] Client connected (#{@clients.size} total)"
+          puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Client connected (#{@clients.size} total)"
           Thread.new(client) { |c| handle_client(c) }
         rescue IOError, Errno::EBADF
           break
         rescue => e
-          puts "[script_api] Accept error: #{e.message}"
+          puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Accept error: #{e.message}"
         end
       end
     end
   end
 
   def stop
-    puts "[script_api] Shutting down"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Shutting down"
     @server&.close rescue nil
     @clients_mutex.synchronize do
       @clients.each { |c| c.close rescue nil }
@@ -63,11 +63,11 @@ class ScriptApiServer
   rescue IOError, Errno::ECONNRESET, Errno::EPIPE
     # Client disconnected
   rescue => e
-    puts "[script_api] Client error: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Client error: #{e.message}"
   ensure
     client.close rescue nil
     @clients_mutex.synchronize { @clients.delete(client) }
-    puts "[script_api] Client disconnected"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Client disconnected"
   end
 
   def dispatch(line)
@@ -89,7 +89,7 @@ class ScriptApiServer
       ""
     end
   rescue => e
-    puts "[script_api] Dispatch error: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [script_api] Dispatch error: #{e.message}"
     ""
   end
 

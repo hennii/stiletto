@@ -133,10 +133,10 @@ Feature implementation plans are saved as `.md` files in `dr-client/plans/`. Whe
 
 When investigating game data issues, unexpected output, or implementing features that depend on the XML stream format, always check the raw logs first. Raw logs capture the exact XML sent by the game server and are the ground truth for understanding what the backend receives.
 
-Raw logs are in `logs/raw-<character>-<date>.log`. Example:
+Raw logs are in `logs/raw/<character>/raw-<character>-<date>.log`. Example:
 
 ```bash
-grep -i "room players\|pushbold" logs/raw-Kesmgurr-2026-02-23.log | head -20
+grep -i "room players\|pushbold" logs/raw/Kesmgurr/raw-Kesmgurr-2026-02-23.log | head -20
 ```
 
 ### CSS Conventions

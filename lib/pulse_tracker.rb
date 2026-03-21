@@ -92,7 +92,7 @@ class PulseTracker
       "last"    => last_out,
     }))
   rescue => e
-    puts "[pulse_tracker] Save error: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [pulse_tracker] Save error: #{e.message}"
   end
 
   private
@@ -162,6 +162,6 @@ class PulseTracker
       end
     end
   rescue => e
-    puts "[pulse_tracker] Load error: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [pulse_tracker] Load error: #{e.message}"
   end
 end

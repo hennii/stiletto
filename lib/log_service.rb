@@ -99,7 +99,7 @@ class LogService
     lines = []
 
     [yesterday, today].each do |date|
-      path = File.join(@base_dir, "#{stream}-#{@char_name}-#{date}.log")
+      path = File.join(@base_dir, stream, @char_name, "#{stream}-#{@char_name}-#{date}.log")
       next unless File.exist?(path)
 
       File.foreach(path) do |line|
@@ -172,8 +172,9 @@ class LogService
     end
 
     @files[stream] ||= begin
-      filename = "#{stream}-#{@char_name}-#{today}.log"
-      path = File.join(@base_dir, filename)
+      dir = File.join(@base_dir, stream, @char_name)
+      FileUtils.mkdir_p(dir)
+      path = File.join(dir, "#{stream}-#{@char_name}-#{today}.log")
       File.open(path, "a")
     end
   end

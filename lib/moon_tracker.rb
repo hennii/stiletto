@@ -63,7 +63,7 @@ class MoonTracker
         check_refetch
         maybe_broadcast_tick
       rescue => e
-        puts "[moon] Background thread error: #{e.message}"
+        puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Background thread error: #{e.message}"
       end
     end
   end
@@ -81,7 +81,7 @@ class MoonTracker
     end
     save_state
     @on_update.call(ws_event)
-    puts "[moon] #{moon} #{is_up ? "rose" : "set"}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] #{moon} #{is_up ? "rose" : "set"}"
   end
 
   # Called by server.rb when the `time` command output reveals the current time of day.
@@ -92,7 +92,7 @@ class MoonTracker
       @sky_period_override_at = Time.now
     end
     @on_update.call(ws_event)
-    puts "[moon] Sky period set from game text: #{period}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Sky period set from game text: #{period}"
   end
 
   # Called by server.rb when a sun rise/set event is seen in game text.
@@ -111,7 +111,7 @@ class MoonTracker
     end
     save_state
     @on_update.call(ws_event)
-    puts "[moon] Sun #{is_up ? "rose" : "set"}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Sun #{is_up ? "rose" : "set"}"
   end
 
   # Current moon state as a WebSocket event, for use in the connect snapshot.
@@ -126,7 +126,7 @@ class MoonTracker
   def load_state
     raw = fetch_raw_firebase
     if raw
-      puts "[moon] Loaded state from Firebase"
+      puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Loaded state from Firebase"
       sun = extract_sun_state(raw)
       @sun_state = sun if sun
       return extract_moon_state(raw)
@@ -134,11 +134,11 @@ class MoonTracker
 
     local = load_local_state
     if local
-      puts "[moon] Loaded state from local file (Firebase unavailable)"
+      puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Loaded state from local file (Firebase unavailable)"
       return local
     end
 
-    puts "[moon] No state found, waiting for in-game events"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] No state found, waiting for in-game events"
     MOONS.each_with_object({}) { |moon, h| h[moon] = { up: nil, next_event_at: nil, last_event_t: nil } }
   end
 
@@ -174,7 +174,7 @@ class MoonTracker
           is_up = entry["e"] == RISE
           @state[moon] = advance_moon_state(moon, is_up, Time.at(entry["t"]) + duration_after_event(moon, is_up))
           @state[moon][:last_event_t] = entry["t"]
-          puts "[moon] #{moon} updated from Firebase re-fetch"
+          puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] #{moon} updated from Firebase re-fetch"
           updated = true
         end
 
@@ -215,12 +215,12 @@ class MoonTracker
     http.open_timeout = 5
     http.read_timeout = 5
 
-    puts "[moon] Fetching state from Firebase"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Fetching state from Firebase"
     response = http.get(uri.request_uri, "Content-Type" => "application/json")
     raw = JSON.parse(response.body)
     raw.nil? ? nil : raw
   rescue => e
-    puts "[moon] Firebase fetch failed: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Firebase fetch failed: #{e.message}"
     nil
   end
 
@@ -292,7 +292,7 @@ class MoonTracker
       end
     end
   rescue => e
-    puts "[moon] Local state load failed: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] Local state load failed: #{e.message}"
     nil
   end
 
@@ -317,7 +317,7 @@ class MoonTracker
 
     File.write(state_file_path, JSON.generate(data))
   rescue => e
-    puts "[moon] State save failed: #{e.message}"
+    puts "[#\{Time.now.strftime('%H:%M:%S')}] [moon] State save failed: #{e.message}"
   end
 
   # -- Moon cycle math -------------------------------------------------------

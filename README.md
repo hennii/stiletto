@@ -116,5 +116,9 @@ stiletto/
 │   └── player-services.json # PC context menu actions
 ├── maps/                    # Zone map XML files
 ├── plans/                   # Feature implementation plans
-└── logs/                    # Per-character dated log files + server PIDs
+└── logs/
+    ├── main/<character>/    # Main game text logs
+    ├── raw/<character>/     # Raw XML stream logs
+    ├── thoughts/<character>/ # Thoughts stream logs
+    └── server/              # Server PIDs and server logs
 ```
