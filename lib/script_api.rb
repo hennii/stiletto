@@ -218,6 +218,30 @@ class ScriptApiServer
     when "EXP_NAMES"
       state[:exp].keys.join("\n")
 
+    when "EXP_MINDSTATE"
+      skill = args[0]
+      return "" unless skill && state[:exp][skill]
+      text = state[:exp][skill][:state].to_s.downcase.strip
+      (PulseTracker::MINDSTATE_NUM[text] || 0).to_s
+
+    when "EXP_DRAIN_FRACTION"
+      skill = args[0]
+      return "" unless skill && @pulse_tracker
+      char = state[:char_name]
+      return "" unless char
+      data = @pulse_tracker.snapshot(char)[skill]
+      return "" unless data
+      data["drain_fraction"].to_s
+
+    when "EXP_NEXT_PULSE_AT"
+      skill = args[0]
+      return "" unless skill && @pulse_tracker
+      char = state[:char_name]
+      return "" unless char
+      data = @pulse_tracker.snapshot(char)[skill]
+      return "" unless data
+      data["next_pulse_at"].to_s
+
     when "EXP_PULSE_DATA"
       skill = args[0]
       return "" unless skill && @pulse_tracker
@@ -232,6 +256,22 @@ class ScriptApiServer
       char = state[:char_name]
       return "" unless char
       @pulse_tracker.snapshot(char).to_json
+
+    when "EXP_SNAPSHOT"
+      return "" unless @pulse_tracker
+      char = state[:char_name]
+      return "" unless char
+      pulse = @pulse_tracker.snapshot(char)
+      snapshot = state[:exp].each_with_object({}) do |(skill, exp_data), out|
+        text = exp_data[:state].to_s.downcase.strip
+        out[skill] = {
+          "mindstate"      => PulseTracker::MINDSTATE_NUM[text] || 0,
+          "rank"           => exp_data[:rank],
+          "drain_fraction" => pulse.dig(skill, "drain_fraction"),
+          "next_pulse_at"  => pulse.dig(skill, "next_pulse_at"),
+        }
+      end
+      snapshot.to_json
 
     when "ACTIVE_SPELLS"
       state[:active_spells].to_s
