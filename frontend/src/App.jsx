@@ -65,9 +65,28 @@ export default function App() {
   const addToHistoryRef = useRef(null);
   const navigateHistoryRef = useRef(null);
 
+  const NUMPAD_DIRECTIONS = {
+    Numpad7: "northwest",
+    Numpad8: "north",
+    Numpad9: "northeast",
+    Numpad4: "west",
+    Numpad6: "east",
+    Numpad1: "southwest",
+    Numpad2: "south",
+    Numpad3: "southeast",
+    Numpad0: "down",
+    NumpadDecimal: "up",
+  };
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.code in NUMPAD_DIRECTIONS) {
+        e.preventDefault();
+        send(NUMPAD_DIRECTIONS[e.code]);
+        return;
+      }
 
       const active = document.activeElement;
       if (active === inputRef.current) return;
