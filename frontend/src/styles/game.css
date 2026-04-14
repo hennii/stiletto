@@ -523,18 +523,25 @@ html, body, #root {
   min-width: 0;
 }
 
-@media screen and (min-width: 1681px) {
-  .right-sidebars {
-    flex-direction: row;
-  }
-}
-
 .sidebar-column {
   background: var(--bg-surface);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+/* Column mode (≤1680px): columns stack vertically, each fills available height */
+.sidebar-col-s2 { flex: 1 1 0; }
+.sidebar-col-s1 { flex: 1 1 0; }
+
+@media screen and (min-width: 1681px) {
+  /* Row mode: s2 has a fixed width, s1 fills remaining */
+  .right-sidebars {
+    flex-direction: row;
+  }
+  .sidebar-col-s2 { flex: 0 0 var(--s2-width, 220px); }
+  .sidebar-col-s1 { flex: 1 1 0; min-width: 150px; }
 }
 
 .sidebar-column-empty {
@@ -1313,6 +1320,75 @@ html, body, #root {
   height: 14px;
   flex-shrink: 0;
   accent-color: #8b5cf6;
+}
+
+.layout-save-modal {
+  max-width: 340px;
+}
+.layout-save-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.layout-save-form .highlights-add-input {
+  flex: 1;
+}
+.toolbar-dropdown-separator {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 8px;
+}
+.layout-save-btn {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  color: var(--text-secondary);
+}
+.layout-save-btn:hover {
+  color: var(--text-primary);
+}
+.layout-preset-row {
+  justify-content: space-between;
+  cursor: default;
+}
+.layout-preset-row:hover {
+  background: var(--bg-hover);
+}
+.layout-preset-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+.layout-preset-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.layout-preset-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  color: var(--text-secondary);
+  font-size: var(--font-sm);
+  font-family: inherit;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+.layout-preset-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.layout-preset-delete {
+  border-color: transparent;
+  font-size: 14px;
+  padding: 1px 4px;
+}
+.layout-preset-delete:hover {
+  border-color: #c0392b;
+  color: #e74c3c;
 }
 
 /* ===== Scrollbar styling ===== */

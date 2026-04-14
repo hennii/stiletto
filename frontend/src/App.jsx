@@ -117,6 +117,8 @@ export default function App() {
     insertTextRef.current?.(text);
   }, []);
 
+  const [rightSidebarEmpty, setRightSidebarEmpty] = useState(false);
+
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const layout = loadLayout();
     return layout.sidebarWidth || DEFAULT_SIDEBAR_WIDTH;
@@ -126,6 +128,17 @@ export default function App() {
     const layout = loadLayout();
     return layout.leftSidebarWidth || DEFAULT_LEFT_SIDEBAR_WIDTH;
   });
+
+  useEffect(() => {
+    const handler = () => {
+      const layout = loadLayout();
+      setSidebarWidth(layout.sidebarWidth || DEFAULT_SIDEBAR_WIDTH);
+      setLeftSidebarWidth(layout.leftSidebarWidth || DEFAULT_LEFT_SIDEBAR_WIDTH);
+      setHiddenPanels(new Set(layout.hiddenPanels || []));
+    };
+    window.addEventListener("layout:load", handler);
+    return () => window.removeEventListener("layout:load", handler);
+  }, []);
 
   const dragging = useRef(false);
 
@@ -194,7 +207,7 @@ export default function App() {
     <PlayerServicesProvider>
     <div
       className="app"
-      style={{ gridTemplateColumns: `${leftSidebarWidth}px 4px 1fr 4px ${sidebarWidth}px` }}
+      style={{ gridTemplateColumns: rightSidebarEmpty ? `${leftSidebarWidth}px 4px 1fr` : `${leftSidebarWidth}px 4px 1fr 4px ${sidebarWidth}px` }}
     >
       <LeftSidebar exp={exp} streams={streams} pulseData={pulseData} send={send} />
       <div className="left-sidebar-divider" onMouseDown={onLeftDividerMouseDown} />
@@ -219,7 +232,7 @@ export default function App() {
         onMove={send}
       />
       <CommandInput onSend={send} inputRef={inputRef} insertTextRef={insertTextRef} addToHistoryRef={addToHistoryRef} navigateHistoryRef={navigateHistoryRef} />
-      <div className="sidebar-divider" onMouseDown={onDividerMouseDown} />
+      {!rightSidebarEmpty && <div className="sidebar-divider" onMouseDown={onDividerMouseDown} />}
       <RightSidebars
         room={room}
         exp={exp}
@@ -239,6 +252,7 @@ export default function App() {
         onInsertText={handleInsertText}
         moons={moons}
         skyPeriod={skyPeriod}
+        onEmptyChange={setRightSidebarEmpty}
       />
     </div>
     {highlightsOpen && <HighlightsModal onClose={() => setHighlightsOpen(false)} />}

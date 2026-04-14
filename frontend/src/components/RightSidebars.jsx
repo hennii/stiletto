@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useMemo, memo } from "react";
+import React, { useState, useCallback, useRef, useMemo, memo, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -140,10 +140,10 @@ function SortablePanel({ id, title, open, onToggle, maxHeight, onResizeStart, ch
 // A single panel column. Uses useDroppable so items can be dropped onto an
 // empty column (when there are no SortableContext items to land on).
 
-function SidebarColumn({ columnId, panelIds, collapsedPanels, panelSizes, onToggle, onResizeStart, contentProps, style }) {
+function SidebarColumn({ columnId, panelIds, collapsedPanels, panelSizes, onToggle, onResizeStart, contentProps }) {
   const { setNodeRef } = useDroppable({ id: columnId });
   return (
-    <div ref={setNodeRef} className="sidebar-column" style={style}>
+    <div ref={setNodeRef} className={`sidebar-column sidebar-col-${columnId}`}>
       <SortableContext id={columnId} items={panelIds} strategy={verticalListSortingStrategy}>
         {panelIds.length === 0 ? (
           <div className="sidebar-column-empty">Drop panels here</div>
@@ -176,6 +176,7 @@ const RightSidebars = memo(function RightSidebars({
   room, exp, streams, activeSpells, compass, scriptWindows,
   onMove, mapZone, mapCurrentNode, mapLevel, hiddenPanels = new Set(),
   inventory, roundtime, send, addToHistoryRef, onInsertText, moons, skyPeriod,
+  onEmptyChange,
 }) {
   // s1 = outer (original) sidebar. Reads legacy panelOrder key for back-compat.
   const [s1Panels, setS1Panels] = useState(() => {
@@ -201,6 +202,20 @@ const RightSidebars = memo(function RightSidebars({
 
   // Width of the inner (s2) column in pixels. s1 takes remaining flex space.
   const [s2Width, setS2Width] = useState(() => loadLayout().innerSidebarWidth || DEFAULT_S2_WIDTH);
+
+  useEffect(() => {
+    const handler = () => {
+      const layout = loadLayout();
+      const s2 = layout.sidebar2PanelOrder || DEFAULT_S2_PANELS;
+      setS1Panels(layout.panelOrder || DEFAULT_S1_PANELS.filter((id) => !s2.includes(id)));
+      setS2Panels(s2);
+      setCollapsedPanels(new Set(layout.collapsedPanels || DEFAULT_COLLAPSED));
+      setPanelSizes(layout.panelSizes || DEFAULT_PANEL_SIZES);
+      setS2Width(layout.innerSidebarWidth || DEFAULT_S2_WIDTH);
+    };
+    window.addEventListener("layout:load", handler);
+    return () => window.removeEventListener("layout:load", handler);
+  }, []);
 
   const containerRef = useRef(null);
 
@@ -333,30 +348,43 @@ const RightSidebars = memo(function RightSidebars({
   // ── Render ───────────────────────────────────────────────────────────────
   const contentProps = { room, exp, streams, activeSpells, compass, scriptWindows, onMove, mapZone, mapCurrentNode, mapLevel, inventory, roundtime, send, addToHistoryRef, onInsertText, moons, skyPeriod };
 
+  const showS2 = allS2Panels.length > 0 || !!activeId;
+  const showS1 = allS1Panels.length > 0 || !!activeId;
+
+  useEffect(() => {
+    onEmptyChange?.(!showS2 && !showS1);
+  }, [showS2, showS1, onEmptyChange]);
+
   return (
-    <div ref={containerRef} className="right-sidebars">
+    <div ref={containerRef} className="right-sidebars" style={{ '--s2-width': `${s2Width}px` }}>
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <SidebarColumn
-          columnId="s2"
-          panelIds={allS2Panels}
-          collapsedPanels={collapsedPanels}
-          panelSizes={panelSizes}
-          onToggle={togglePanel}
-          onResizeStart={onResizeStart}
-          contentProps={contentProps}
-          style={{ flex: `0 0 ${s2Width}px` }}
-        />
-        <div className="inner-sidebar-divider" onMouseDown={onDividerMouseDown} />
-        <SidebarColumn
-          columnId="s1"
-          panelIds={allS1Panels}
-          collapsedPanels={collapsedPanels}
-          panelSizes={panelSizes}
-          onToggle={togglePanel}
-          onResizeStart={onResizeStart}
-          contentProps={contentProps}
-          style={{ flex: "1 1 0", minWidth: MIN_COL_WIDTH }}
-        />
+        <>
+          {showS2 && (
+            <SidebarColumn
+              columnId="s2"
+              panelIds={allS2Panels}
+              collapsedPanels={collapsedPanels}
+              panelSizes={panelSizes}
+              onToggle={togglePanel}
+              onResizeStart={onResizeStart}
+              contentProps={contentProps}
+            />
+          )}
+          {showS2 && showS1 && (
+            <div className="inner-sidebar-divider" onMouseDown={onDividerMouseDown} />
+          )}
+          {showS1 && (
+            <SidebarColumn
+              columnId="s1"
+              panelIds={allS1Panels}
+              collapsedPanels={collapsedPanels}
+              panelSizes={panelSizes}
+              onToggle={togglePanel}
+              onResizeStart={onResizeStart}
+              contentProps={contentProps}
+            />
+          )}
+        </>
         <DragOverlay>
           {activeId ? (
             <div className="sidebar-panel open drag-overlay-panel">

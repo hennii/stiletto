@@ -199,6 +199,17 @@ export const LeftSidebar = memo(function LeftSidebar({ exp, streams, pulseData, 
     return layout.leftPanelSizes || LEFT_DEFAULT_PANEL_SIZES;
   });
 
+  useEffect(() => {
+    const handler = () => {
+      const layout = loadLayout();
+      setPanelOrder(layout.leftPanelOrder || LEFT_DEFAULT_PANEL_ORDER);
+      setCollapsedPanels(new Set(layout.leftCollapsedPanels || LEFT_DEFAULT_COLLAPSED));
+      setPanelSizes(layout.leftPanelSizes || LEFT_DEFAULT_PANEL_SIZES);
+    };
+    window.addEventListener("layout:load", handler);
+    return () => window.removeEventListener("layout:load", handler);
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
