@@ -23,7 +23,9 @@
       "Bash(grep:*)",
       "Bash(wc:*)",
       "Bash(python3:*)",
-      "WebFetch(domain:elanthipedia.play.net)"
+      "WebFetch(domain:elanthipedia.play.net)",
+      "Bash(bash -n /Users/josh/dragonrealms/stiletto/start.sh)",
+      "Bash(bash -x /Users/josh/dragonrealms/stiletto/start.sh)"
     ]
   }
 }
