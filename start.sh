@@ -15,6 +15,13 @@ start_character() {
     return
   fi
 
+  local autostart
+  autostart=$(grep '^DR_AUTOSTART=' "$env_file" | cut -d= -f2 || true)
+  if [[ "${2:-}" != "--force" && "$autostart" == "false" ]]; then
+    echo "  Skipping $char — DR_AUTOSTART=false (use: dr start $char to start manually)"
+    return
+  fi
+
   local port
   port=$(grep '^DR_PORT=' "$env_file" | cut -d= -f2)
 
@@ -42,7 +49,7 @@ start_character() {
 
 echo "=== Starting DR client servers ==="
 if [[ -n "${1:-}" ]]; then
-  start_character "$1"
+  start_character "$1" --force
 else
   for env_file in .env.*; do
     [[ "$env_file" == *.example ]] && continue
